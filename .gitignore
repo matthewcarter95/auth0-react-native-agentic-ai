@@ -61,5 +61,4 @@ buck-out/
 
 # CocoaPods
 /ios/Pods/
-auth0-configuration.js
 .env
