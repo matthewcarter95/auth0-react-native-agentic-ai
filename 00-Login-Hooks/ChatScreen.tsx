@@ -81,12 +81,14 @@ export const ChatScreen = () => {
         throw new Error('No access token available');
       }
 
+      const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhobmZrZ2pldHdtZXpheXd5ZHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTM5MzMsImV4cCI6MjA3NTQyOTkzM30.Go5P6t2CJ8NSrLBxzlvVxY3NHIKNTZSKOau10V6dLqA';
+
       const response = await fetch(
         'https://xhnfkgjetwmezaywydzm.supabase.co/functions/v1/ai-chat',
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${credentials.accessToken}`,
+            Authorization: `Bearer ${supabaseAnonKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -133,12 +135,14 @@ export const ChatScreen = () => {
 
     const pollCIBA = async () => {
       try {
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhobmZrZ2pldHdtZXpheXd5ZHptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTM5MzMsImV4cCI6MjA3NTQyOTkzM30.Go5P6t2CJ8NSrLBxzlvVxY3NHIKNTZSKOau10V6dLqA';
+
         const response = await fetch(
           'https://xhnfkgjetwmezaywydzm.supabase.co/functions/v1/ciba-poll',
           {
             method: 'POST',
             headers: {
-              Authorization: `Bearer ${accessToken}`,
+              Authorization: `Bearer ${supabaseAnonKey}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({

@@ -26,19 +26,15 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
-    }
-
     const { message, auth0AccessToken, auth0Domain }: ChatRequest = await req.json();
 
-    // Decode JWT to get user ID
-    const token = authHeader.replace("Bearer ", "");
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!auth0AccessToken) {
+      throw new Error("No Auth0 access token provided");
+    }
+
+    const payload = JSON.parse(atob(auth0AccessToken.split(".")[1]));
     const userId = payload.sub;
 
-    // Store user message
     await supabase.from("chat_messages").insert({
       user_id: userId,
       role: "user",
@@ -46,16 +42,13 @@ Deno.serve(async (req: Request) => {
       requires_approval: false,
     });
 
-    // Check if message is asking about personal information
     const needsApproval = checkIfNeedsApproval(message);
 
     if (needsApproval) {
-      // Initiate CIBA flow
       const authReqId = crypto.randomUUID();
       const bindingMessage = `AI wants to access your personal information to answer: "${message.substring(0, 100)}..."`;
       
-      // Store CIBA request
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
       await supabase.from("ciba_auth_requests").insert({
         auth_req_id: authReqId,
         user_id: userId,
@@ -65,7 +58,6 @@ Deno.serve(async (req: Request) => {
         expires_at: expiresAt.toISOString(),
       });
 
-      // Store assistant message indicating approval needed
       await supabase.from("chat_messages").insert({
         user_id: userId,
         role: "assistant",
@@ -88,7 +80,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // For non-sensitive queries, respond without approval
     const aiResponse = "I can answer general questions without accessing your personal data. For questions about your specific information, I'll need your approval first.";
 
     await supabase.from("chat_messages").insert({

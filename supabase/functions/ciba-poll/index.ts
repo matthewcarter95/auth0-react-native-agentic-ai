@@ -26,19 +26,15 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
-    }
-
     const { authReqId, auth0AccessToken, auth0Domain }: PollRequest = await req.json();
 
-    // Decode JWT to get user ID
-    const token = authHeader.replace("Bearer ", "");
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!auth0AccessToken) {
+      throw new Error("No Auth0 access token provided");
+    }
+
+    const payload = JSON.parse(atob(auth0AccessToken.split(".")[1]));
     const userId = payload.sub;
 
-    // Check CIBA request status
     const { data: cibaRequest, error } = await supabase
       .from("ciba_auth_requests")
       .select("*")
@@ -50,7 +46,6 @@ Deno.serve(async (req: Request) => {
       throw new Error("CIBA request not found");
     }
 
-    // Check if expired
     if (new Date(cibaRequest.expires_at) < new Date()) {
       await supabase
         .from("ciba_auth_requests")
@@ -71,7 +66,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // If approved, fetch user info from Auth0 and return AI response
     if (cibaRequest.status === "approved") {
       const userInfoResponse = await fetch(`https://${auth0Domain}/userinfo`, {
         headers: {
@@ -85,7 +79,6 @@ Deno.serve(async (req: Request) => {
 
       const userInfo = await userInfoResponse.json();
 
-      // Get the original question from chat history
       const { data: messages } = await supabase
         .from("chat_messages")
         .select("*")
@@ -96,10 +89,8 @@ Deno.serve(async (req: Request) => {
 
       const lastQuestion = messages?.[0]?.content || "";
 
-      // Generate AI response based on user info
       const aiResponse = generatePersonalizedResponse(lastQuestion, userInfo);
 
-      // Store AI response
       await supabase.from("chat_messages").insert({
         user_id: userId,
         role: "assistant",
@@ -122,7 +113,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Return current status
     return new Response(
       JSON.stringify({
         status: cibaRequest.status,
@@ -174,6 +164,5 @@ function generatePersonalizedResponse(question: string, userInfo: any): string {
       : "I don't have much information about your profile.";
   }
   
-  // Default response with available info
   return `Based on your profile: You are ${userInfo.name || "a user"} (${userInfo.email || "no email"}). How can I help you further?`;
 }
