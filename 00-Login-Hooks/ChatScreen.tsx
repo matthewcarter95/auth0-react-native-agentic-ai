@@ -43,14 +43,6 @@ export const ChatScreen = () => {
     if (!user?.sub) return;
 
     try {
-      const credentials = await getCredentials();
-      if (!credentials?.accessToken) return;
-
-      await supabase.auth.setSession({
-        access_token: credentials.accessToken,
-        refresh_token: '',
-      });
-
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
@@ -58,7 +50,10 @@ export const ChatScreen = () => {
         .order('created_at', { ascending: true })
         .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        console.log('Error loading chat history:', error);
+        return;
+      }
 
       if (data) {
         setMessages(data);
